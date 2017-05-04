@@ -1,6 +1,7 @@
 #include <DallasTemperature.h>
 #include <OneWire.h>
-
+#include <SPI.h>
+#include <Ethernet.h>
 
 // --------- Temperatur ---------
 #define ONE_WIRE_BUS 13
@@ -14,6 +15,19 @@ DeviceAddress tempDeviceAddress;
 
 DeviceAddress adresseEins;
 DeviceAddress adresseZwei;
+
+// --------- Ethernet ---------
+byte mac[] = {  
+   0x90, 0xA2, 0xDA, 0x0F, 0x97, 0x54 
+};
+
+// IP Arduino
+IPAddress ip(192,168,178,222);
+
+// IP Raspberry NodeJs Server
+IPAddress server(192,168,178,43);
+
+EthernetClient client;
 
 void setup(void) {
 
@@ -31,6 +45,20 @@ void setup(void) {
   Serial.print(numberOfDevices, DEC);
   Serial.print(" gefunden");
   Serial.println();
+  delay(1000);
+
+  // --------- Ethernet ---------
+  Ethernet.begin(mac, ip);
+  Serial.println("Verbinde....");
+
+  if (client.connect(server,1337))
+    {
+      Serial.println("TCP Server Verbunden auf Port 1337");
+    }
+  else
+    {
+      Serial.println("Verbindung fehlgeschlagen");
+    }
 }
 
 void temperaturAusgeben(DeviceAddress deviceaddress, char str[10])

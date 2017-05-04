@@ -1,1 +1,1 @@
-Device is a DS18B20 : 0x28, 0x6E, 0xE5, 0x14, 00x6, 00x0, 00x0, 0x21
+Device is a DS18B20 : 0x28, 0x6E, 0xE5, 0x14, 00x6, 00x0, 00x0, 0x21IP Adressen:Raspberry NodeJs 192.168.178.43Arduino 192.168.178.222 MAC:90 A2 DA 0F 97 54sudo chown -R pi:pi /home/pi/testaufbau [testaufbau] comment = Network Logon Service path = /home/pi/testaufbauguest ok = no writeable = yes 
