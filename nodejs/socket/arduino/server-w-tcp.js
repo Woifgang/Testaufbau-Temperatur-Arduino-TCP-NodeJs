@@ -7,9 +7,10 @@ var http = require('http')
   , url = require('url')
   , fs = require('fs')
   , io = require('socket.io')
+  , ds18b20 = require('ds18b20')
   , sys = require(process.binding('natives').util ? 'util' : 'sys')
   , server;
-  
+
 var tcpGuests = [];
 var chatGuests = [];
 
@@ -22,7 +23,7 @@ server = http.createServer(function(req, res){
       res.write('<h1>Welcome. Try the <a href="/arduino.html">Arduino</a> example.</h1>');
       res.end();
       break;
-      
+
     case '/json.js':
     case '/arduino.html':
       fs.readFile(__dirname + path, function(err, data){
@@ -32,7 +33,7 @@ server = http.createServer(function(req, res){
         res.end();
       });
       break;
-      
+
     default: send404(res);
   }
 }),
@@ -51,19 +52,19 @@ server.listen(8090);
 // simplest chat application evar
 var io = io.listen(server)
   , buffer = [];
-  
+
 io.on('connection', function(client){
   client.send({ buffer: buffer });
   client.broadcast.send({ announcement: client.sessionId + ' connected' });
-  
+
   chatGuests.push(client);
-  
+
   client.on('message', function(message){
     var msg = { message: [client.sessionId, message] };
     buffer.push(msg);
     if (buffer.length > 15) buffer.shift();
     client.broadcast.send(msg);
-    
+
     //send msg to tcp connections
     for (g in tcpGuests) {
         tcpGuests[g].write(message);
@@ -84,19 +85,48 @@ var tcpServer = net.createServer(function (socket) {
 tcpServer.on('connection',function(socket){
     socket.write('connected to the tcp server\r\n');
     console.log('num of connections on port 1337: ' + tcpServer.connections);
-    
+
     tcpGuests.push(socket);
-    
+
     socket.on('data',function(data){
         console.log('received on tcp socket:'+data);
         socket.write('msg received\r\n');
-        
+
         //send data to guest socket.io chat server
         for (g in io.clients) {
             var client = io.clients[g];
             client.send({message:["arduino",data.toString('ascii',0,data.length)]});
-            
+
         }
     })
 });
 tcpServer.listen(1337);
+
+
+var interval = 3000; //enter the time between sensor queries here (in milliseconds)
+
+//when a client connects
+io.sockets.on('connection', function (socket) {
+
+    var sensorId = [];
+    //fetch array containing each ds18b20 sensor's ID
+    ds18b20.sensors(function (err, id) {
+        sensorId = id;
+        socket.emit('sensors', id); //send sensor ID's to clients
+    });
+
+    //initiate interval timer
+    setInterval(function () {
+        //loop through each sensor id
+        sensorId.(function (28-6EE514600021) {
+
+            ds18b20.temperature(id, function (err, value) {
+
+                //send temperature reading out to connected clients
+                socket.emit('temps', {'id': id, 'value': value});
+
+            });
+        });
+
+    }, interval);
+});

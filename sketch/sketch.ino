@@ -71,14 +71,29 @@ void temperaturAusgeben(DeviceAddress deviceaddress, char str[10])
 }
 
 void loop(void) {
- 
- sensors.requestTemperatures();
- for(int i=0;i<numberOfDevices; i++)
- {
-  if(sensors.getAddress(tempDeviceAddress,i))
-  {
-    temperaturAusgeben(tempDeviceAddress,"    Buero");
+
+if (client.available()) {
+    char c = client.read();
+    Serial.print(c);
+    sensors.requestTemperatures();
+       for(int i=0;i<numberOfDevices; i++)
+       {
+        if(sensors.getAddress(tempDeviceAddress,i))
+        {
+          temperaturAusgeben(tempDeviceAddress,"    Buero");
+        }
+       }
   }
- }
+
+  
+ /*if (!client.connected()) {
+    Serial.println();
+    Serial.println("disconnecting.");
+    client.stop();
+
+    // do nothing forevermore:
+    while (true);
+  }*/
+ 
  
 }

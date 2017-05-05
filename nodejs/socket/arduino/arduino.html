@@ -2,77 +2,92 @@
 <html>
   <head>
     <title>socket.io client test</title>
-        
+
     <script src="/json.js"></script> <!-- for ie -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
-    
+
   </head>
   <body>
-    
+
     <script>
       function message(obj){
         var el = document.createElement('p');
         if ('announcement' in obj) el.innerHTML = '<em>' + esc(obj.announcement) + '</em>';
         else if ('message' in obj) el.innerHTML = '<b>' + esc(obj.message[0]) + ':</b> ' + esc(obj.message[1]);
-        
+
         if (obj.message[0] == "you" && obj.message[1] == "1") {
             jQuery('#button').css('background-color','green');
-            
+
         } else if (obj.message[0] != "arduino" && obj.message[0] != "you" && obj.message[1] == "1") {
             jQuery('#button').css('background-color','yellow');
-            
+
         } else if (obj.message[1] == "0") {
-            jQuery('#button').css('background-color','white');            
+            jQuery('#button').css('background-color','white');
         }
-        
+
         if( obj.message && window.console && console.log ) console.log(obj.message[0], obj.message[1]);
-        
+
       }
-      
+
       function turnOn() {
           socket.send('1');
           message({ message: ['you', '1'] });
       }
-      
+
       function turnOff() {
           socket.send('0');
           message({ message: ['you', '0'] });
       }
-      
+
       function esc(msg){
         return msg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
       };
-      
+
       var socket = new io.connect(null, { port: 8090, rememberTransport: false});
       socket.on('message', function(obj){
         if ('buffer' in obj){
           //ignore this
         } else message(obj);
       });
-      
+
+      /*####################*/
+      var socket = io.connect(':8090/');
+      socket.on('sensors', function (data) { //append sensors to table
+      data.forEach(function (d) {
+      var html = '<tr><td>' + d + '</td><td id="' + d + '"></td></tr>';
+      $('#temps').append(html);
+      });
+      });
+
+      //update corresponding row with sensor value
+      socket.on('temps', function (data) {
+      $('#' + data.id).html(data.value);
+      });
+      /*#############################*/
+
       socket.on('connect', function(){ message({ message: ['System', 'Connected']})});
       socket.on('disconnect', function(){ message({ message: ['System', 'Disconnected']})});
       socket.on('reconnect', function(){ message({ message: ['System', 'Reconnected to server']})});
       socket.on('reconnecting', function( nextRetry ){ message({ message: ['System', 'Attempting to re-connect to the server, next attempt in ' + nextRetry + 'ms']})});
       socket.on('reconnect_failed', function(){ message({ message: ['System', 'Reconnected to server FAILED.']})});
-      
+
       jQuery('document').ready(function(){
           jQuery('#button').mousedown(function() {
               turnOn();
           });
-          
+
           jQuery('#button').mouseup(function() {
               turnOff();
           });
-          
+
           //add in iphone mobile safari touch events
           document.addEventListener("touchstart", turnOn, true);
           document.addEventListener("touchend", turnOff, true);
           document.addEventListener("touchcancel", turnOff, true);
       })
     </script>
-    
+
     <div id='button'>
         <br/><Br/>
         Tap to turn LED my on.
@@ -85,11 +100,22 @@
         <p>
 
     </div>
-    
-    
-    
+
+    <div class="container">
+     <table class="table" id="temps">
+     <thead>
+     <tr>
+     <th>Sensor ID</th>
+     <th>Temperature (celsius)</th>
+     </tr>
+     </thead>
+     </table>
+    </div>
+
+
+
     <style>
-        body { 
+        body {
             width:960px;
             height:320px;
         }
@@ -109,6 +135,6 @@
         #yellowLegend { color:#CDAD00; font-size:18px;}
 
     </style>
-    
+
   </body>
 </html>
