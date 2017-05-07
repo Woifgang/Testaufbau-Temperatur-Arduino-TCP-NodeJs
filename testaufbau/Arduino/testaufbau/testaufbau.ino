@@ -1,7 +1,7 @@
 /* Sende String an Node Js Server und Stelle auf Webseite dar
-IP Adressen:
-Raspberry NodeJs 192.168.178.43
-Arduino 192.168.178.222 MAC:90 A2 DA 0F 97 54
+  IP Adressen:
+  Raspberry NodeJs 192.168.178.43
+  Arduino 192.168.178.222 MAC:90 A2 DA 0F 97 54
 */
 
 #include <SPI.h>
@@ -12,25 +12,25 @@ Arduino 192.168.178.222 MAC:90 A2 DA 0F 97 54
 // ######################## Netzwerkverbindung
 // ######  Arduino Client
 byte mac[] = {0x90, 0xA2, 0xDA, 0x0F, 0x97, 0x54};
-IPAddress ip(192,168,178,222);
+IPAddress ip(192, 168, 178, 222);
 
 // ######  NodeJs Server Raspberry Pi
-IPAddress server(192,168,178,43);
+IPAddress server(192, 168, 178, 43);
 
 //Erzeuge Client
 EthernetClient client;
 
 // Variablen
-int antworteServer = 0;
+int i = 0;
 
 // ######################## Temperatur
 // Pin festlegen
 #define ONE_WIRE_BUS 13
-#define TEMPERATURE_PRECISION 5
+#define TEMPERATURE_PRECISION 9
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
-int numberOfDevices;
-DeviceAddress tempDeviceAddress;
+
+DeviceAddress ersterSensor, zweiterSensor;
 
 
 
@@ -39,146 +39,58 @@ void setup(void)
   // Serielle Schnittstelle öffnen
   Serial.begin(9600);
   Serial.println("Testaufbau");
-  // ###### Suche Temperatur Sensoren
+
+}
+float temperaturAusgeben(DeviceAddress sensoradresse, int index) {
+  //client.stop();
   sensors.begin();
-  numberOfDevices = sensors.getDeviceCount(); // Anzahl der Sensoren
-  Serial.println(numberOfDevices);
-  
-  //sucheTemperaturSensoren();
- // sucheTemperaturSensoren();
-  // ###### TCP Verbindung aufbauen
-  tcpVerbindungAufbauen();
+  sensors.getAddress(sensoradresse, index);
+  sensors.setResolution(sensoradresse, TEMPERATURE_PRECISION);
+//  sensors.requestTemperatures();
+  float tempC = sensors.getTempC(sensoradresse);
+  return tempC;
 }
 
-void loop(void) {
-  int var = 0;
-  // Prüfe ob Server verfügbar
+void loop()
+{
+  //  sensors.begin();
+  //  sensors.requestTemperatures();
+  Serial.println("Empfange Temperaturen");
+  sensors.requestTemperatures();
+ // temperaturAusgeben(ersterSensor, 0);
+  float tmp = temperaturAusgeben(ersterSensor, 0);
+  Serial.println(tmp);
+
+
+  tcpVerbindungAufbauen();
+  delay(3000);
   if (client.available())
   {
-    if (var == 0){
-      for (int i = 0; i<8; i++){
-        char c = client.read();
-        Serial.print(c);
-        }
-      
-      var = 1;
-    }
-    
-    if (var == 1)
-    {
-      client.println("Fremder");
-          //delay(3000);
-      Serial.println("var = 1");
-          
-    }
-    var = 2;
-    if (var == 2)
-    {
-      sensors.requestTemperatures();
-          for(int i=0;i<numberOfDevices; i++)
-          {
-             if(sensors.getAddress(tempDeviceAddress,i))
-             {
-               temperaturAusgeben(tempDeviceAddress);
-             }
-           }
-          Serial.println("var = 2");
-    }
-     var = 3;
-     Serial.println("var = 3");
-  }
-  
-  // Trenne Verbindung wenn Server offline
-  if (!client.connected())
-  {
-    Serial.println();
-    Serial.println("Verbindung wird getrennt");
-    client.stop();
-    while(true);
+    client.println(tmp);
+    client.flush();
   }
 
-}
-
-void temperaturAusgeben(DeviceAddress deviceaddress)
-{
-  float tempC = sensors.getTempC(deviceaddress);
-  Serial.print(tempC);
-  delay(3000);
 }
 
 void tcpVerbindungAufbauen()
 {
-  Ethernet.begin(mac, ip);
-  Serial.println("Verbinde....");
-
-  if (client.connect(server, 1337))
+  if (!client.available())
   {
-      Serial.println("TCP Server Verbunden auf Port 1337");
-  }
-  else
-  {
-    Serial.println("Verbindung fehlgeschlagen");
-  }
-}
+    Ethernet.begin(mac, ip);
+    Serial.println("Verbinde....");
 
-
-void sucheTemperaturSensoren()
-{
-  int i = 0;
-  byte address[8];
-  byte ok = 0;
-  byte tmp = 0;
-
-  Serial.println("Suche Temeratur Sensoren...");
-  while(oneWire.search(address))
-  {
-    tmp = 0;
-    //0x10 = DS18S20
-    if (address[0] == 0x10)
+    if (client.connect(server, 1337))
     {
-      Serial.print("Sensor vom Typ DS18S20 : ");
-      tmp = 1;
+      Serial.println("TCP Server Verbunden auf Port 1337");
     }
     else
     {
-      // 0x28 = DS18B20
-      if (address[0] == 0x28)
-      {
-        Serial.print("Sensor vom Typ DS18B20:");
-        tmp = 1;
-      }
+      Serial.println("Verbindung fehlgeschlagen");
     }
-    // Zeige Adressen an wenn Sensor gefunden wurde
-    if (tmp == 1)
-    {
-      if (OneWire::crc8(address, 7) != address[7])
-      {
-        Serial.println("hat keine gültige CRC Adresse!");
-      }
-      else
-      {
-        // alles ok zeige Adressen an
-        for (i = 0; i < 8; i++)
-        {
-          if (address[i] < 9)
-          {
-            Serial.print("0");
-          }
-          Serial.print("0x");
-          Serial.print(address[i], HEX);
-          if (i < 7)
-          {
-            Serial.print(",  ");
-          }
-        }
-        Serial.println("");
-        ok = 1;
-      }
-    } // Ende if tmp
-  } // Ende While Schleife
-  if (ok == 0 )
-  {
-    Serial.println("Keine Sensoren gefunden");
   }
-  Serial.println("Suche abgeschlossen");
+  else {
+    client.stop();
+    Serial.println("client gestoppt");
+  }
 }
+
