@@ -1,10 +1,7 @@
-#include <Arduino.h>
-
 /* Sende String an Node Js Server und Stelle auf Webseite dar
 IP Adressen:
 Raspberry NodeJs 192.168.178.43
 Arduino 192.168.178.222 MAC:90 A2 DA 0F 97 54
-fdadf
 */
 
 #include <SPI.h>
@@ -42,35 +39,19 @@ void setup(void)
   // Serielle Schnittstelle öffnen
   Serial.begin(9600);
   Serial.println("Testaufbau");
-
   // ###### Suche Temperatur Sensoren
   sensors.begin();
-  sucheTemperaturSensoren();
   numberOfDevices = sensors.getDeviceCount(); // Anzahl der Sensoren
   Serial.println(numberOfDevices);
-
+  
+  //sucheTemperaturSensoren();
+ // sucheTemperaturSensoren();
   // ###### TCP Verbindung aufbauen
   tcpVerbindungAufbauen();
-
 }
 
-void temperaturenAufrufen()
-{
-  sensors.requestTemperatures();
-    for(int i=0;i<numberOfDevices; i++)
-    {
-     if(sensors.getAddress(tempDeviceAddress,i))
-     {
-       temperaturAusgeben(tempDeviceAddress, i);
-     }
-    }
-}
-
-void loop(void)
-{
+void loop(void) {
   int var = 0;
-  temperaturenAufrufen();
-
   // Prüfe ob Server verfügbar
   if (client.available())
   {
@@ -79,54 +60,49 @@ void loop(void)
         char c = client.read();
         Serial.print(c);
         }
-
+      
       var = 1;
     }
-
+    
     if (var == 1)
     {
       client.println("Fremder");
           //delay(3000);
       Serial.println("var = 1");
-      var = 2;
+          
     }
-
+    var = 2;
     if (var == 2)
     {
-      delay(3000);
       sensors.requestTemperatures();
-      for(int i=0;i<numberOfDevices; i++)
-      {
-       if(sensors.getAddress(tempDeviceAddress,i))
-       {
-         temperaturAusgeben(tempDeviceAddress, i);
-       }
-      }
-      Serial.println("var = 2");
-      var = 3;
+          for(int i=0;i<numberOfDevices; i++)
+          {
+             if(sensors.getAddress(tempDeviceAddress,i))
+             {
+               temperaturAusgeben(tempDeviceAddress);
+             }
+           }
+          Serial.println("var = 2");
     }
-//
-//     Serial.println("var = 3");
+     var = 3;
+     Serial.println("var = 3");
   }
-
+  
   // Trenne Verbindung wenn Server offline
   if (!client.connected())
   {
     Serial.println();
     Serial.println("Verbindung wird getrennt");
     client.stop();
-    //while(true);
+    while(true);
   }
+
 }
 
-void temperaturAusgeben(DeviceAddress deviceaddress, int i)
+void temperaturAusgeben(DeviceAddress deviceaddress)
 {
   float tempC = sensors.getTempC(deviceaddress);
-  Serial.print("Sensor ");
-  Serial.print(i);
-  Serial.print(": ");
   Serial.print(tempC);
-  Serial.println();
   delay(3000);
 }
 
