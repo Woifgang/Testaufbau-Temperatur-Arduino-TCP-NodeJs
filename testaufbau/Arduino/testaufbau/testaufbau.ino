@@ -1,7 +1,15 @@
-/* Sende String an Node Js Server und Stelle auf Webseite dar
-  IP Adressen:
-  Raspberry NodeJs 192.168.178.43
-  Arduino 192.168.178.222 MAC:90 A2 DA 0F 97 54
+/* Testaufbau
+	Ablauf:
+	- Lese Temperatur Sensor 1 aus
+	- Baue TCP-Verbindung auf
+	- Empfange "Howdy" vom Server
+	- Sende Temperatur Wert vom Sensor 1 an Server
+	- Warteschleife
+	
+	
+	IP Adressen:
+	Raspberry NodeJs: 192.168.178.43
+	Arduino: 192.168.178.222 MAC:90 A2 DA 0F 97 54
 */
 
 #include <SPI.h>
@@ -20,18 +28,22 @@ IPAddress server(192, 168, 178, 43);
 //Erzeuge Client
 EthernetClient client;
 
-// Variablen
-int i = 0;
 
 // ######################## Temperatur
 // Pin festlegen
 #define ONE_WIRE_BUS 13
+// Auflösung Temperatur
 #define TEMPERATURE_PRECISION 9
+// OnWire Bibliothek  auf Pin13
 OneWire oneWire(ONE_WIRE_BUS);
+//DallasTemperature auf OnWire
 DallasTemperature sensors(&oneWire);
-
+// Sensoradressen zuweisen
 DeviceAddress ersterSensor, zweiterSensor;
 
+
+// ######################## Globale Variablen
+int statusSchleife = 0;  // Variable für While Schleifen im Loog
 
 
 void setup(void)
@@ -39,36 +51,104 @@ void setup(void)
   // Serielle Schnittstelle öffnen
   Serial.begin(9600);
   Serial.println("Testaufbau");
-
-}
-float temperaturAusgeben(DeviceAddress sensoradresse, int index) {
-  //client.stop();
-  sensors.begin();
-  sensors.getAddress(sensoradresse, index);
-  sensors.setResolution(sensoradresse, TEMPERATURE_PRECISION);
-//  sensors.requestTemperatures();
-  float tempC = sensors.getTempC(sensoradresse);
-  return tempC;
 }
 
 void loop()
 {
-  //  sensors.begin();
-  //  sensors.requestTemperatures();
-  Serial.println("Empfange Temperaturen");
-  sensors.requestTemperatures();
- // temperaturAusgeben(ersterSensor, 0);
-  float tmp = temperaturAusgeben(ersterSensor, 0);
-  Serial.println(tmp);
-
-
-  tcpVerbindungAufbauen();
-  delay(3000);
-  if (client.available())
-  {
-    client.println(tmp);
-    client.flush();
-  }
+	float tempEins = 0;
+	
+	
+	// 0 = Temperatur auslesen
+	while(statusSchleife == 0)
+	{
+		tempEins = temperaturAusgeben(ersterSensor, 0);
+		if(tempEins <> 0)
+		{
+			Serial.print("Temperatur erster Sensor beträgt: ");
+			Serial.print(tempEins);
+			Serial.print(" Grad");
+			Serial.println();
+			statusSchleife = 1;
+		}
+		else if(tempEins == -127.00)
+		{
+			Serial.println("Messung fehlgeschlagen!!!");
+			delay(3000);
+		}
+		else
+		{
+			Serial.println("Macht gar nichts")
+		}	
+		
+		// Status Kontrolle
+		Serial.print("Status Schleife = ");
+		Serial.print(statusSchleife);
+		Serial.println();
+		delay(5000);
+	}
+	
+	// 1 = TCP-Verbindung aufbauen 
+	while(statusSchleife == 1)
+	{
+		tcpVerbindungAufbauen();
+		if (client.available())
+		{
+			Serial.println("TCP Verbindung steht!!!")
+			statusSchleife = 2;
+		}
+		// Status Kontrolle
+		Serial.print("Status Schleife = ");
+		Serial.print(statusSchleife);
+		Serial.println();
+		delay(5000);
+	}
+	
+	// 2 = Daten vom Server empfangen 
+	while(statusSchleife == 2)
+	{
+		if(client.available())
+		{
+			char c = client.read();
+			Serial.println(c);
+			statusSchleife == 3;
+		}
+		// Status Kontrolle
+		Serial.print("Status Schleife = ");
+		Serial.print(statusSchleife);
+		Serial.println();
+		delay(5000);
+	}
+	
+	// 3 = Daten an Server senden
+	while(statusSchleife == 3)
+	{
+		if(client.available())
+		{
+			client.print("Die Temperatur betraegt: ")
+			client.print(tempEins);
+			client.print(" Grad Celsius")
+			client.println();
+			statusSchleife = 4;
+		}
+		// Status Kontrolle
+		Serial.print("Status Schleife = ");
+		Serial.print(statusSchleife);
+		Serial.println();
+		delay(5000);
+	}
+	
+	// 4 = Warteschleife
+	while(statusSchleife == 4)
+	{
+		Serial.println("Wartezeit....");
+		delay(5000);
+		statusSchleife = 0;
+		// Status Kontrolle
+		Serial.print("Status Schleife = ");
+		Serial.print(statusSchleife);
+		Serial.println();
+		delay(5000);
+	}
 
 }
 
@@ -92,5 +172,14 @@ void tcpVerbindungAufbauen()
     client.stop();
     Serial.println("client gestoppt");
   }
+}
+
+float temperaturAusgeben(DeviceAddress sensoradresse, int index) {
+  sensors.begin();
+  sensors.getAddress(sensoradresse, index);
+  sensors.setResolution(sensoradresse, TEMPERATURE_PRECISION);
+  sensors.requestTemperatures();
+  float tempC = sensors.getTempC(sensoradresse);
+  return tempC;
 }
 
