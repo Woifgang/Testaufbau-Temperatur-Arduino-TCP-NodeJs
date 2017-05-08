@@ -62,7 +62,7 @@ void loop()
 	while(statusSchleife == 0)
 	{
 		tempEins = temperaturAusgeben(ersterSensor, 0);
-		if(tempEins <> 0)
+		if(tempEins != 0)
 		{
 			Serial.print("Temperatur erster Sensor beträgt: ");
 			Serial.print(tempEins);
@@ -77,7 +77,7 @@ void loop()
 		}
 		else
 		{
-			Serial.println("Macht gar nichts")
+			Serial.println("Macht gar nichts");
 		}	
 		
 		// Status Kontrolle
@@ -93,7 +93,7 @@ void loop()
 		tcpVerbindungAufbauen();
 		if (client.available())
 		{
-			Serial.println("TCP Verbindung steht!!!")
+			Serial.println("TCP Verbindung steht!!!");
 			statusSchleife = 2;
 		}
 		// Status Kontrolle
@@ -124,9 +124,9 @@ void loop()
 	{
 		if(client.available())
 		{
-			client.print("Die Temperatur betraegt: ")
+			client.print("Die Temperatur betraegt: ");
 			client.print(tempEins);
-			client.print(" Grad Celsius")
+			client.print(" Grad Celsius");
 			client.println();
 			statusSchleife = 4;
 		}
