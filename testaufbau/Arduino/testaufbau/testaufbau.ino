@@ -51,6 +51,7 @@ void setup(void)
   // Serielle Schnittstelle öffnen
   Serial.begin(9600);
   Serial.println("Testaufbau");
+  sensors.begin();
 }
 
 void loop()
@@ -61,8 +62,12 @@ void loop()
 	// 0 = Temperatur auslesen
 	while(statusSchleife == 0)
 	{
-		tempEins = temperaturAusgeben(ersterSensor, 0);
-		if(tempEins != 0)
+
+  Serial.print("Temperature for the device 1 (index 0) is: ");
+  Serial.println(sensors.getTempCByIndex(0));  
+  tempEins = sensors.getTempCByIndex(0);
+  
+		if(tempEins != -127.00)
 		{
 			Serial.print("Temperatur erster Sensor beträgt: ");
 			Serial.print(tempEins);
@@ -86,7 +91,7 @@ void loop()
 		Serial.println();
 		delay(5000);
 	}
-	
+		
 	// 1 = TCP-Verbindung aufbauen 
 	while(statusSchleife == 1)
 	{
@@ -96,6 +101,12 @@ void loop()
 			Serial.println("TCP Verbindung steht!!!");
 			statusSchleife = 2;
 		}
+   else
+   {
+      client.stop();
+      Serial.println("Es konnte keine Verbindung zum Server hergestellt werden");
+      statusSchleife = 4;
+   }
 		// Status Kontrolle
 		Serial.print("Status Schleife = ");
 		Serial.print(statusSchleife);
@@ -175,7 +186,7 @@ void tcpVerbindungAufbauen()
 }
 
 float temperaturAusgeben(DeviceAddress sensoradresse, int index) {
-  sensors.begin();
+  //sensors.begin();
   sensors.getAddress(sensoradresse, index);
   sensors.setResolution(sensoradresse, TEMPERATURE_PRECISION);
   sensors.requestTemperatures();
