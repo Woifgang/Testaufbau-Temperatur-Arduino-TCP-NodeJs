@@ -16,6 +16,7 @@
 #include <Ethernet.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Thread.h>
 
 // ######################## Netzwerkverbindung
 // ######  Arduino Client
@@ -44,148 +45,49 @@ DeviceAddress ersterSensor, zweiterSensor;
 
 // ######################## Globale Variablen
 int statusSchleife = 0;  // Variable für While Schleifen im Loog
+float tempEins = 0;
+//My simple Thread
+Thread myTemp = Thread();
 
+void aktTemp()
+{
+  tcpVerbindungAufbauen();
+}
 
 void setup(void)
 {
   // Serielle Schnittstelle öffnen
   Serial.begin(9600);
   Serial.println("Testaufbau");
-  
   sensors.begin();
-  tcpVerbindungAufbauen();
+  myTemp.onRun(aktTemp);
+  myTemp.setInterval(500);
+
 }
 
 void loop()
 {
-  float tempEins = 0;
 
-
-  // 0 = Temperatur auslesen
-  while (statusSchleife == 0)
-  {
-    Serial.print("Temperature for the device 1 (index 0) is: ");
-    sensors.requestTemperatures();
-    Serial.println(sensors.getTempCByIndex(0));
-    tempEins = sensors.getTempCByIndex(0);
-
-    if (tempEins != -127.00)
-    {
-      Serial.print("Temperatur erster Sensor beträgt: ");
-      Serial.print(tempEins);
-      Serial.print(" Grad");
-      Serial.println();
-      statusSchleife = 1;
-    }
-    else if (tempEins == -127.00)
-    {
-      Serial.println("Messung fehlgeschlagen!!!");
-      delay(3000);
-      statusSchleife = 5;
-    }
-    else
-    {
-      Serial.println("Macht gar nichts");
-    }
-
-    // Status Kontrolle
-    Serial.print("Status Schleife = ");
-    Serial.print(statusSchleife);
-    Serial.println();
-    delay(5000);
-
-  }
-  // 1 = TCP-Verbindung aufbauen
-  while (statusSchleife == 1)
-  {
-//    tcpVerbindungAufbauen();
-    if (client.available())
-     {
-    Serial.println("TCP Verbindung steht!!!");
-    client.print("Die Temperatur betraegt: ");
-    client.print(tempEins);
-    client.print(" Grad Celsius");
-    client.println();
-    statusSchleife = 2;
-    }
-    else
-    {
-      client.stop();
-      Serial.println("Es konnte keine Verbindung zum Server hergestellt werden");
-     statusSchleife = 4;
-    }
-    // Status Kontrolle
-    Serial.print("Status Schleife = ");
-    Serial.print(statusSchleife);
-    Serial.println();
-    delay(5000);
-  }
-
-  // 2 = Daten vom Server empfangen
-  while (statusSchleife == 2)
-  {
-    if (client.available())
-    {
-      for (int i = 0; i < 100; i++) 
-      {
-        char c = client.read();
-        Serial.print(c);
-      }
-      statusSchleife == 3;
-    }
-    else
-    {
-      client.stop();
-      Serial.println("client wurde in schleife 2 gestoppt");
-      statusSchleife = 5;
-    }
-    // Status Kontrolle
-    Serial.print("Status Schleife = ");
-    Serial.print(statusSchleife);
-    Serial.println();
-    delay(500);
-  }
-
-  // 3 = Daten an Server senden
-  while (statusSchleife == 3)
-  {
-    if (client.available())
-    {
-      client.print("Die Temperatur betraegt: ");
-      client.print(tempEins);
-      client.print(" Grad Celsius");
-      client.println();
-      statusSchleife = 4;
-    }
-    // Status Kontrolle
-    Serial.print("Status Schleife = ");
-    Serial.print(statusSchleife);
-    Serial.println();
-    delay(5000);
-  }
-
-  // 4 = Warteschleife
-  while (statusSchleife == 4)
-  {
-    Serial.println("Wartezeit....");
-    delay(5000);
-    statusSchleife = 0;
-    // Status Kontrolle
-    Serial.print("Status Schleife = ");
-    Serial.print(statusSchleife);
-    Serial.println();
-    delay(5000);
-  }
-
-  while (statusSchleife == 5)
-  {
-    Serial.println("Status Schleife 5");
+  if (myTemp.shouldRun())
+    myTemp.run();
     client.stop();
-    delay(5000);
     sensors.begin();
-    delay(5000);
-    statusSchleife = 0;
-  }
+  delay(500);
+
+  Serial.print("Temperature for the device 1 (index 0) is: ");
+  sensors.requestTemperatures();
+  Serial.println(sensors.getTempCByIndex(0));
+  tempEins = sensors.getTempCByIndex(0);
+  Serial.print("COOL! I'm running on: ");
+  Serial.println(millis());
+
+  Serial.println("TCP Verbindung steht!!!");
+  //    client.print("Die Temperatur betraegt: ");
+  //    client.print(tempEins);
+  //    client.print(" Grad Celsius");
+  //    client.println();
+  statusSchleife = 2;
+
 
 }
 
