@@ -16,7 +16,6 @@
 #include <Ethernet.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <Thread.h>
 
 // ######################## Netzwerkverbindung
 // ######  Arduino Client
@@ -32,7 +31,7 @@ EthernetClient client;
 
 // ######################## Temperatur
 // Pin festlegen
-#define ONE_WIRE_BUS 13
+#define ONE_WIRE_BUS 2
 // Auflösung Temperatur
 #define TEMPERATURE_PRECISION 9
 // OnWire Bibliothek  auf Pin13
@@ -46,13 +45,12 @@ DeviceAddress ersterSensor, zweiterSensor;
 // ######################## Globale Variablen
 int statusSchleife = 0;  // Variable für While Schleifen im Loog
 float tempEins = 0;
-//My simple Thread
-Thread myTemp = Thread();
 
-void aktTemp()
-{
-  tcpVerbindungAufbauen();
-}
+unsigned long lastConnectionTime = 0;
+const unsigned long postingInterval = 10L * 1000L;
+
+unsigned long lastTemperaturTime = 0;
+const unsigned long postingTempInterval = 10L * 1000L;
 
 void setup(void)
 {
@@ -60,33 +58,53 @@ void setup(void)
   Serial.begin(9600);
   Serial.println("Testaufbau");
   sensors.begin();
-  myTemp.onRun(aktTemp);
-  myTemp.setInterval(500);
-
 }
 
 void loop()
 {
 
-  if (myTemp.shouldRun())
-    myTemp.run();
+  if (client.available())
+  {
+    char c = client.read();
+    Serial.write(c);
+  } if (millis() - lastConnectionTime > postingInterval)
+  {
     client.stop();
-    sensors.begin();
-  delay(500);
+    tcpVerbindungAufbauen();
 
-  Serial.print("Temperature for the device 1 (index 0) is: ");
-  sensors.requestTemperatures();
-  Serial.println(sensors.getTempCByIndex(0));
-  tempEins = sensors.getTempCByIndex(0);
-  Serial.print("COOL! I'm running on: ");
-  Serial.println(millis());
 
-  Serial.println("TCP Verbindung steht!!!");
+    if (client.connect(server, 1337))
+    {
+      Serial.println("TCP Server Verbunden auf Port 1337");
+      lastConnectionTime = millis();
+    }
+    else
+    {
+      Serial.println("Verbindung fehlgeschlagen");
+    }
+  }
+
+  if (millis() - lastTemperaturTime > postingTempInterval)
+  {
+    Serial.print("Temperature for the device 1 (index 0) is: ");
+    sensors.requestTemperatures();
+    Serial.println(sensors.getTempCByIndex(0));
+    tempEins = sensors.getTempCByIndex(0);
+    Serial.print("COOL! I'm running on: ");
+    Serial.print("Variable TempEins = ");
+    Serial.print(tempEins);
+    Serial.println();
+    lastTemperaturTime = millis();
+  }
+
+
+
+
   //    client.print("Die Temperatur betraegt: ");
   //    client.print(tempEins);
   //    client.print(" Grad Celsius");
   //    client.println();
-  statusSchleife = 2;
+
 
 
 }

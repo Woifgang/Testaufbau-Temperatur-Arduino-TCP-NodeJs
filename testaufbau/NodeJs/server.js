@@ -1,3 +1,4 @@
+
 var net = require('net');
 
 var serverA = net.createServer();
@@ -14,3 +15,19 @@ serverA.on('connection',function(socket){
 
 serverA.listen(1337);
 console.log('tcp server running on port 1337');
+/*
+var five = require("johnny-five");
+var board = new five.Board();
+
+board.on("ready", function() {
+  // This requires OneWire support using the ConfigurableFirmata
+  var thermometer = new five.Thermometer({
+    controller: "DS18B20",
+    pin: 13
+  });
+
+  thermometer.on("change", function() {
+    console.log(this.celsius + "°C");
+    // console.log("0x" + this.address.toString(16));
+  });
+});
